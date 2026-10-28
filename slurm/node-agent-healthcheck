@@ -1,0 +1,4 @@
+#!/bin/sh
+# Slurm HealthCheckProgram: drain this node if the node agent says so.
+code=$(curl -s -o /tmp/na.txt -w '%{http_code}' http://127.0.0.1:9400/healthz)
+[ "$code" = "200" ] || scontrol update nodename="$(hostname -s)" state=drain reason="node-agent: $(head -c 200 /tmp/na.txt)"

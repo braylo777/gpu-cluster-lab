@@ -1,0 +1,38 @@
+# SIMULATED LAB: manifests for the node agent on a GPU Kubernetes cluster. Not applied to any real cluster.
+apiVersion: v1
+kind: Namespace
+metadata: { name: gpu-ops }
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata: { name: node-agent, namespace: gpu-ops, labels: { app: node-agent } }
+spec:
+  selector: { matchLabels: { app: node-agent } }
+  template:
+    metadata:
+      labels: { app: node-agent }
+      annotations: { prometheus.io/scrape: "true", prometheus.io/port: "9400" }
+    spec:
+      nodeSelector: { nvidia.com/gpu.present: "true" }
+      tolerations: [{ key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }]
+      containers:
+        - name: agent
+          image: ghcr.io/braylo777/node-agent:0.1.0
+          env:
+            - { name: NODE_AGENT_SOURCE, value: nvidia-smi }
+            - { name: NODE_NAME, valueFrom: { fieldRef: { fieldPath: spec.nodeName } } }
+          ports: [{ containerPort: 9400, name: metrics }]
+          readinessProbe: { httpGet: { path: /healthz, port: 9400 }, periodSeconds: 15 }
+          resources: { requests: { cpu: 20m, memory: 32Mi }, limits: { memory: 64Mi } }
+          securityContext: { readOnlyRootFilesystem: true, allowPrivilegeEscalation: false }
+---
+apiVersion: v1
+kind: Pod
+metadata: { name: gpu-smoke, namespace: gpu-ops }
+spec:
+  restartPolicy: Never
+  containers:
+    - name: cuda
+      image: nvidia/cuda:12.4.1-base-ubuntu22.04
+      command: ["nvidia-smi"]
+      resources: { limits: { nvidia.com/gpu: 1 } }

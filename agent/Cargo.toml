@@ -1,0 +1,15 @@
+[package]
+name = "node-agent"
+version = "0.1.0"
+edition = "2021"
+description = "GPU node agent (health, Prometheus metrics, drain decisions) + a simulated cluster scheduler"
+
+[dependencies]
+
+[[bin]]
+name = "node-agent"
+path = "src/bin/node_agent.rs"
+
+[[bin]]
+name = "simulate"
+path = "src/bin/simulate.rs"
